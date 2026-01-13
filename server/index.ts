@@ -27,7 +27,8 @@ export function createServer() {
 
   // Only serve static files and SPA fallback in production
   if (process.env.NODE_ENV === "production") {
-    const spaPath = path.join(__dirname, "../dist/spa");
+    // __dirname is /path/to/dist/server, so we need ../spa to reach /path/to/dist/spa
+    const spaPath = path.join(__dirname, "../spa");
     app.use(express.static(spaPath));
 
     // SPA fallback: serve index.html for all non-API routes
