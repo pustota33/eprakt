@@ -28,49 +28,66 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import { AdminAuthProvider } from "@/hooks/useAdminAuth";
+import { SupabaseHealthProvider, useSupabaseHealth } from "@/hooks/useSupabaseHealth";
+import MaintenanceModal from "@/components/MaintenanceModal";
 
 const queryClient = new QueryClient();
+
+function AppContent() {
+  const { isAvailable } = useSupabaseHealth();
+
+  // Show maintenance modal if Supabase is not available
+  if (!isAvailable) {
+    return <MaintenanceModal />;
+  }
+
+  return (
+    <BrowserRouter>
+      <AdminAuthProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Index />} />
+              <Route path="energopraktiki" element={<Facilitators />} />
+              <Route path="retreats" element={<Retreats />} />
+              <Route path="blog" element={<Blog />} />
+              <Route path="blog/:postSlug" element={<BlogPostDetail />} />
+              <Route path="retreats/:retreatSlug" element={<RetreatDetail />} />
+              <Route path="contacts" element={<Contacts />} />
+              <Route path="about" element={<About />} />
+              <Route path="terms-of-offer" element={<TermsOfOffer />} />
+              <Route path="facilitator-apply" element={<FacilitatorApply />} />
+              <Route path="energopraktiki/:facilitatorSlug" element={<FacilitatorDetail />} />
+              <Route path="schedule-edit/:code" element={<ScheduleEdit />} />
+              <Route path="personal-account" element={
+                <ProtectedRoute>
+                  <PersonalAccount />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+            <Route path="/login" element={<Login />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/admin-dashboard" element={
+              <AdminProtectedRoute>
+                <AdminDashboard />
+              </AdminProtectedRoute>
+            } />
+          </Routes>
+        </AuthProvider>
+      </AdminAuthProvider>
+    </BrowserRouter>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AdminAuthProvider>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<MainLayout />}>
-                <Route index element={<Index />} />
-                <Route path="energopraktiki" element={<Facilitators />} />
-                <Route path="retreats" element={<Retreats />} />
-                <Route path="blog" element={<Blog />} />
-                <Route path="blog/:postSlug" element={<BlogPostDetail />} />
-                <Route path="retreats/:retreatSlug" element={<RetreatDetail />} />
-                <Route path="contacts" element={<Contacts />} />
-                <Route path="about" element={<About />} />
-                <Route path="terms-of-offer" element={<TermsOfOffer />} />
-                <Route path="facilitator-apply" element={<FacilitatorApply />} />
-                <Route path="energopraktiki/:facilitatorSlug" element={<FacilitatorDetail />} />
-                <Route path="schedule-edit/:code" element={<ScheduleEdit />} />
-                <Route path="personal-account" element={
-                  <ProtectedRoute>
-                    <PersonalAccount />
-                  </ProtectedRoute>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
-              <Route path="/admin-dashboard" element={
-                <AdminProtectedRoute>
-                  <AdminDashboard />
-                </AdminProtectedRoute>
-              } />
-            </Routes>
-          </AuthProvider>
-        </AdminAuthProvider>
-      </BrowserRouter>
+      <SupabaseHealthProvider>
+        <AppContent />
+      </SupabaseHealthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
