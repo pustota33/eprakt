@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import * as fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,10 +30,34 @@ export function createServer() {
   if (process.env.NODE_ENV === "production") {
     // __dirname is /path/to/dist/server, so we need ../spa to reach /path/to/dist/spa
     const spaPath = path.join(__dirname, "../spa");
+    const staticPath = path.join(__dirname, "../static");
+
+    // Serve static assets
     app.use(express.static(spaPath));
 
-    // SPA fallback: serve index.html for all non-API routes
-    app.get(/.*/, (_req, res) => {
+    // Pre-generated static pages (HTML files for SEO)
+    app.get(/.*/, (req, res) => {
+      // Don't serve index.html for API routes
+      if (req.path.startsWith("/api/") || req.path.startsWith("/health")) {
+        return res.status(404).json({ error: "API endpoint not found" });
+      }
+
+      // Check if pre-rendered static HTML exists for this route
+      const requestPath = req.path === "/" ? "index.html" : `${req.path}/index.html`;
+      const staticFilePath = path.join(staticPath, requestPath);
+
+      // Check if static file exists, serve it
+      if (process.env.USE_PRERENDER !== "false") {
+        try {
+          if (fs.existsSync(staticFilePath)) {
+            return res.sendFile(staticFilePath);
+          }
+        } catch (error) {
+          // Fall through to SPA
+        }
+      }
+
+      // Fall back to SPA for client-side routing
       res.sendFile(path.join(spaPath, "index.html"));
     });
   }
