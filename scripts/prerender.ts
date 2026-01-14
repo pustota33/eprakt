@@ -68,10 +68,29 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 const distDir = path.join(__dirname, '../dist/static');
+const spaDir = path.join(__dirname, '../dist/spa');
 
 // Ensure dist directory exists
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
+}
+
+// Find the built JS file
+function getScriptTag(): string {
+  try {
+    const assetsDir = path.join(spaDir, 'assets');
+    if (!fs.existsSync(assetsDir)) return '';
+
+    const files = fs.readdirSync(assetsDir);
+    const jsFiles = files.filter(f => f.startsWith('index-') && f.endsWith('.js'));
+
+    if (jsFiles.length > 0) {
+      return `  <script type="module" src="/assets/${jsFiles[0]}"></script>`;
+    }
+  } catch (error) {
+    // Fallback
+  }
+  return '';
 }
 
 interface Facilitator {
@@ -196,6 +215,7 @@ function stripHtml(html: string | null | undefined): string {
 function generateStaticPageHTML(title: string, heading: string, description: string, url: string, content: string = ''): string {
   const baseUrl = 'https://eprakt.onrender.com';
   const cleanDescription = stripHtml(description).slice(0, 160);
+  const scriptTag = getScriptTag();
 
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -228,7 +248,7 @@ function generateStaticPageHTML(title: string, heading: string, description: str
       ${content ? `<div>${content}</div>` : ''}
     </div>
   </noscript>
-  <script type="module" src="/assets/index-*.js"></script>
+${scriptTag}
 </body>
 </html>`;
 }
@@ -237,6 +257,7 @@ function generateFacilitatorHTML(facilitator: Facilitator): string {
   const slug = facilitator.slug || facilitator.id;
   const baseUrl = 'https://eprakt.onrender.com';
   const url = `/energopraktiki/${slug}`;
+  const scriptTag = getScriptTag();
 
   const title = facilitator.seo_meta_title || `${facilitator.name} | Фасилитатор Кундалини`;
   const description = facilitator.seo_meta_description || facilitator.description || facilitator.tagline || `${facilitator.name} - фасилитатор кундалини в городе ${facilitator.city}`;
@@ -287,7 +308,7 @@ function generateFacilitatorHTML(facilitator: Facilitator): string {
   <noscript>
     <div>${contentHtml}</div>
   </noscript>
-  <script type="module" src="/assets/index-*.js"></script>
+${scriptTag}
 </body>
 </html>`;
 }
@@ -296,6 +317,7 @@ function generateBlogPostHTML(post: BlogPost): string {
   const slug = post.slug || post.id;
   const baseUrl = 'https://eprakt.onrender.com';
   const url = `/blog/${slug}`;
+  const scriptTag = getScriptTag();
 
   const title = post.title;
   const description = post.excerpt || stripHtml(post.content).slice(0, 160) || post.title;
@@ -336,7 +358,7 @@ function generateBlogPostHTML(post: BlogPost): string {
   <noscript>
     <div>${contentHtml}</div>
   </noscript>
-  <script type="module" src="/assets/index-*.js"></script>
+${scriptTag}
 </body>
 </html>`;
 }
@@ -345,6 +367,7 @@ function generateRetreatHTML(retreat: Retreat): string {
   const slug = retreat.slug || retreat.id;
   const baseUrl = 'https://eprakt.onrender.com';
   const url = `/retreats/${slug}`;
+  const scriptTag = getScriptTag();
 
   const title = retreat.title;
   const description = retreat.description || stripHtml(retreat.content).slice(0, 160) || retreat.title;
@@ -391,7 +414,7 @@ function generateRetreatHTML(retreat: Retreat): string {
   <noscript>
     <div>${contentHtml}</div>
   </noscript>
-  <script type="module" src="/assets/index-*.js"></script>
+${scriptTag}
 </body>
 </html>`;
 }
