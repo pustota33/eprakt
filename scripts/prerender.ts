@@ -3,16 +3,67 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import * as dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_KEY;
+// Load .env files
+const envPath = path.join(__dirname, '../.env');
+const envLocalPath = path.join(__dirname, '../.env.local');
+
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+}
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath });
+}
+
+let supabaseUrl = process.env.VITE_SUPABASE_URL;
+let supabaseKey = process.env.VITE_SUPABASE_KEY;
+
+// Try reading from .env directly as fallback (for local development)
+if (!supabaseUrl || !supabaseKey) {
+  try {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const urlMatch = envContent.match(/VITE_SUPABASE_URL="?([^"\n]+)"?/);
+    const keyMatch = envContent.match(/VITE_SUPABASE_KEY="?([^"\n]+)"?/);
+
+    if (urlMatch) supabaseUrl = urlMatch[1];
+    if (keyMatch) supabaseKey = keyMatch[1];
+  } catch (error) {
+    // Ignore file read errors
+  }
+}
+
+// If still missing, try without quotes
+if (!supabaseUrl || !supabaseKey) {
+  try {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const lines = envContent.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('VITE_SUPABASE_URL=')) {
+        supabaseUrl = line.replace('VITE_SUPABASE_URL=', '').replace(/^["']|["']$/g, '').trim();
+      }
+      if (line.startsWith('VITE_SUPABASE_KEY=')) {
+        supabaseKey = line.replace('VITE_SUPABASE_KEY=', '').replace(/^["']|["']$/g, '').trim();
+      }
+    }
+  } catch (error) {
+    // Ignore file read errors
+  }
+}
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Error: VITE_SUPABASE_URL and VITE_SUPABASE_KEY environment variables are required');
-  process.exit(1);
+  console.warn('⚠️  WARNING: Supabase credentials not found in environment');
+  console.warn('⚠️  Pre-rendering will be skipped');
+  console.warn('📋 To fix: Set VITE_SUPABASE_URL and VITE_SUPABASE_KEY in your build environment');
+  console.warn('');
+  console.warn('For Render: Go to Dashboard → Service → Environment → Add variables:');
+  console.warn('  - VITE_SUPABASE_URL');
+  console.warn('  - VITE_SUPABASE_KEY');
+  console.warn('');
+  process.exit(0); // Exit gracefully without pre-rendering
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
