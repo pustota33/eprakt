@@ -44,13 +44,18 @@ export function createServer() {
     const requestPath = req.path === "/" ? "index.html" : `${req.path}/index.html`;
     const staticFilePath = path.join(staticPath, requestPath);
 
+    // Debug logging
+    const fileExists = fs.existsSync(staticFilePath);
+    if (req.path === "/" || req.path.startsWith("/energopraktiki") || req.path.startsWith("/blog")) {
+      console.log(`[SSG] ${req.path} → ${staticFilePath} → exists: ${fileExists}`);
+    }
+
     // Check if static file exists, serve it (before SPA fallback)
-    if (process.env.USE_PRERENDER !== "false") {
+    if (process.env.USE_PRERENDER !== "false" && fileExists) {
       try {
-        if (fs.existsSync(staticFilePath)) {
-          return res.sendFile(staticFilePath);
-        }
+        return res.sendFile(staticFilePath);
       } catch (error) {
+        console.error(`[SSG] Error serving static file: ${error}`);
         // Fall through to SPA
       }
     }
